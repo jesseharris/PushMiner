@@ -1,0 +1,4 @@
+PushMiner
+=========
+
+Bitcoin Push Miner
