@@ -1,8 +1,9 @@
 import hashlib
+import socket
 import struct
 import json
 
-def push_miner(environ, start_response):
+def application(environ, start_response):
     # Declare local variables
     block_header = None
     nonce_start = None
@@ -49,5 +50,15 @@ def push_miner(environ, start_response):
 
 if __name__ == '__main__':
     import wsgiref.simple_server as simple_server
-    httpd = simple_server.make_server('', 8000, push_miner)
-    httpd.serve_forever()
+    httpd = None
+    try:
+        httpd = simple_server.make_server('', 80, application)
+        print "Started on Port 80"
+    except socket.error:
+        try:
+            httpd = simple_server.make_server('', 8000, application)
+            print "Started on Port 8000"
+        except:
+            print "Cannot bind to 80 or 8000, not able to start simple server"
+    if httpd:
+        httpd.serve_forever()
