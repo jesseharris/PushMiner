@@ -4,28 +4,39 @@ import struct
 import json
 
 def application(environ, start_response):
+    # Hard Coded Salt - CHANGE THIS!!!
+    salt = "c2c565a8c7dc220ed7d9ff2f34b40dae7864ef0b8189557f0d3b7360ef34e1cd"
+    
     # Declare local variables
     block_header = None
     nonce_start = None
     nonce_end = None
-
+    signature = None
+    
     # Parse the args in the URL into a dict and assign local variables
     try:
         args = dict(item.split('=')[0:2] for item in environ.get('QUERY_STRING', '').split('&'))
         block_header = str(args['block_header'])
         nonce_start = int(args['nonce_start'])
         nonce_end = int(args['nonce_end'])
+        signature = str(args['signature'])
     except:
         status = '500 Internal Server Error'
         headers = [('Content-type', 'text/plain')]
         start_response(status, headers)
         return ["Internal Server Error"]
-
-
+        
     # pre-hash the block header(76 bytes)
     pre_hash = hashlib.sha256()
     pre_hash.update(block_header.decode('hex'))
 
+    # check the signature = sha256(block_header + salt)
+    if not signature == hashlib.sha256(block_header.decode('hex') + salt.decode('hex')).hexdigest():
+        status = '401 Unauthorized'
+        headers = [('Content-type', 'text/plain')]
+        start_response(status, headers)
+        return ["Unauthorized"]
+    
     result = {"share_found": False, "nonce": -1, "nonce_start": nonce_start, "nonce_end": nonce_end}
     nonce = nonce_start
     while nonce <= nonce_end:
