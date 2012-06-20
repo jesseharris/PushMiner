@@ -14,5 +14,11 @@
 		<servlet-name>PushMiner</servlet-name>
 		<url-pattern>/</url-pattern>
 	</servlet-mapping>
+    
+    <context-param>
+        <description>Hard Coded Salt - CHANGE THIS!!!</description> 
+        <param-name>salt</param-name>
+        <param-value>c2c565a8c7dc220ed7d9ff2f34b40dae7864ef0b8189557f0d3b7360ef34e1cd</param-value>
+    </context-param>
 
 </web-app>

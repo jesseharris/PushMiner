@@ -4,6 +4,7 @@ import java.lang.CloneNotSupportedException;
 import java.lang.StringBuilder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -16,11 +17,15 @@ public class PushMiner extends HttpServlet {
         long nonceStart;
         long nonceEnd;
         String blockHeader;
+        String signature;
+        String salt = getServletContext().getInitParameter("salt");
 
         try {
             nonceStart = Long.parseLong(request.getParameter("nonce_start"));
             nonceEnd = Long.parseLong(request.getParameter("nonce_end"));
             blockHeader = request.getParameter("block_header");
+            signature = request.getParameter("signature");
+            this.validateSignature(signature, blockHeader, salt);
             response.setContentType("text/plain");
             response.setStatus(200);
             PrintWriter writer = response.getWriter();
@@ -34,6 +39,18 @@ public class PushMiner extends HttpServlet {
             writer.close();
             return;
         }
+    }
+    
+    public Boolean validateSignature(String signature, String blockHeader, String salt) throws Exception{
+        byte[] byteArrayBlockHeader = this.hexStringToByteArray(blockHeader);
+        byte[] byteArraySalt = this.hexStringToByteArray(salt);
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        md.update(byteArrayBlockHeader);
+        md.update(byteArraySalt);
+        if (!(Arrays.equals(this.hexStringToByteArray(signature), md.digest()))){
+            throw new Exception();
+        }
+        return true;
     }
 
     public Result doWork(String blockHeader, long nonceStart, long nonceEnd) throws NoSuchAlgorithmException, CloneNotSupportedException {

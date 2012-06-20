@@ -1,6 +1,11 @@
+<html>
+<body>
 <?php
 
 // NO UINT SUPPORT:  only nonces <= 2147483647 ( 0x0FFFFFFF )
+
+// Hard Coded Salt - CHANGE THIS!!!
+$salt = "c2c565a8c7dc220ed7d9ff2f34b40dae7864ef0b8189557f0d3b7360ef34e1cd";
 
 $nonce_start;
 $nonce_end;
@@ -8,7 +13,8 @@ $block_header;
 
 if ((!isset($_GET['nonce_start'])  or $_GET['nonce_start'] == '') or
     (!isset($_GET['nonce_end'])    or $_GET['nonce_end'] == '') or
-    (!isset($_GET['block_header']) or $_GET['block_header'] == '')){
+    (!isset($_GET['block_header']) or $_GET['block_header'] == '') or
+    (!isset($_GET['signature'])    or $_GET['signature'] == '')){
     header("HTTP/1.1 500 Internal Server Error");
     echo "Internal Server Error";
     exit;
@@ -17,6 +23,14 @@ if ((!isset($_GET['nonce_start'])  or $_GET['nonce_start'] == '') or
 $nonce_start  = (int) $_GET['nonce_start'];
 $nonce_end    = (int) $_GET['nonce_end'];
 $block_header = $_GET['block_header'];
+$signature    = $_GET['signature'];
+
+// Check Signature
+if (strcasecmp($signature, hash('sha256', pack('H*', $block_header).pack('H*', $salt))) != 0){
+    header("HTTP/1.1 401 Unauthorized");
+    echo "Unauthorized";
+    exit;
+}
 
 $share_cmp    = pack('H*', "00000000");
 
@@ -40,3 +54,5 @@ $resp = array('share_found' => False, 'nonce' => -1, 'nonce_start' => $nonce_sta
 echo json_encode($resp);
 
 ?>
+</body>
+</html>
