@@ -50,6 +50,7 @@ general_default = {'protocol' : 'http',
                   'password' : 'OVERRIDEME',
                   'timeout' : 30,
                   'longpoll_timeout' : 6000,
+                  'admin_host' : '',
                   'admin_port' : 8080,                    
     }
 

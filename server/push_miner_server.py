@@ -338,6 +338,7 @@ class AdminWebserver(threading.Thread):
         def do_GET(self):
             global log
             global statistics_lock
+            global start_time
             # Favicon handler
             if self.path in ('/customfavicon.ico', '/favicon.ico'):
                 self.send_response(200)
@@ -353,7 +354,6 @@ class AdminWebserver(threading.Thread):
                 return
             # Gather statistics
             statistics_lock.acquire()
-            start_time = int(time.clock())
             worker_stats = {} # by name
             group_stats = {} # by name.split(':')[0]
             for worker in self.server.thread_list:
@@ -380,6 +380,7 @@ class AdminWebserver(threading.Thread):
             overall_shares_invalid = sum(stat['shares_invalid'] for stat in worker_stats.itervalues())
             overall_shares_24hour = sum(stat['shares_24hour'] for stat in worker_stats.itervalues())
             overall_shares_invalid_24hour = sum(stat['shares_invalid_24hour'] for stat in worker_stats.itervalues())
+            uptime = int(time.time() - start_time)
             statistics_lock.release()
             # Start Response
             self.send_response(200)
@@ -392,7 +393,7 @@ class AdminWebserver(threading.Thread):
             self.wfile.write("<h3>Overall Status</h3>")
             self.wfile.write("<table>")
             self.wfile.write("<tr><th>Uptime</th><th>Total Shares(invalid)</th><th>Shares in Last 24 Hours(invalid)</th><th>Overall 5min Average Hash Rate</th><th>Overall Current Hash Rate</th></tr>")
-            self.wfile.write("<tr><td>%d hours %d minutes %d seconds</td>" % tuple(list(divmod(start_time, 3600))[:1] + list(divmod(divmod(start_time, 3600)[1], 60))))
+            self.wfile.write("<tr><td>%d hours %d minutes %d seconds</td>" % tuple(list(divmod(uptime, 3600))[:1] + list(divmod(divmod(uptime, 3600)[1], 60))))
             self.wfile.write("<td>%d(%d)</td>" % (overall_shares, overall_shares_invalid))
             self.wfile.write("<td>%d(%d)</td>" % (overall_shares_24hour, overall_shares_invalid_24hour))
             self.wfile.write("<td>%.3f Mhash/sec</td>" % (overall_hash_rate_5min / 1000))
@@ -473,14 +474,15 @@ class AdminWebserver(threading.Thread):
                     hash_rate_5min = (hash_count_5min / 1000.0) / (max(times) - min(times)) 
             return hash_rate, hash_rate_5min
 
-    def __init__(self, thread_list, port):
+    def __init__(self, thread_list, host, port):
         threading.Thread.__init__(self)
         self.thread_list = thread_list
+        self.host = host
         self.port = port
         self.daemon = True
 
     def run(self):
-        httpd = BaseHTTPServer.HTTPServer(('', self.port), self.Handler)
+        httpd = BaseHTTPServer.HTTPServer((self.host, self.port), self.Handler)
         httpd.thread_list = self.thread_list
         httpd.serve_forever()
 
@@ -504,8 +506,10 @@ def main():
     #Initialize globals
     global log
     global statistics_lock
+    global start_time
     log = SimpleEventLog()
     statistics_lock = threading.Lock()
+    start_time = time.time()
     
     # Parse Command Line options
     settings_filename = None
@@ -542,6 +546,7 @@ def main():
         password = general['password']
         timeout = general['timeout']
         longpoll_timeout = general['longpoll_timeout']
+        admin_host = general['admin_host']
         admin_port = general['admin_port']
     except KeyError:
         print "Settings File Error(after load)"
@@ -598,8 +603,8 @@ def main():
             thread_list.append(push_thread)
             
     # Start Admin server thread
-        w = AdminWebserver(thread_list, admin_port)
-        w.start()
+    w = AdminWebserver(thread_list, admin_host, admin_port)
+    w.start()
     
     # Try to capture Ctrl-C and exit if caught
     try:
