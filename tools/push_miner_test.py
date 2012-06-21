@@ -1,3 +1,13 @@
+""" Push Miner Test Tool
+
+Example Usage: python push_miner_test.py http://localhost:8000
+
+This will run a series of tests. Change the salt in this file to match the salt of the client.
+The first two tests work for clients with uint support.
+The third test work for any client(uint support not required).
+The final test is a performance test.
+"""
+
 import hashlib
 import json
 import sys
